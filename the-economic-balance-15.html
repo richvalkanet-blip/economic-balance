@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Economic Balance</title>
+<style>
+:root{--bg:#07111d;--panel:#0d1a29;--card:#101f30;--text:#eef7ff;--muted:#91a5b9;--line:#24374b;--cyan:#37d9ff;--blue:#5588ff;--green:#65d89b;--orange:#ffb65c}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 50% 20%,#10243a 0,#07111d 48%,#050b12 100%);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+header{padding:24px 24px 10px;max-width:1500px;margin:auto}.title{font-size:clamp(28px,4vw,52px);font-weight:800;letter-spacing:.02em}.sub{color:var(--muted);margin-top:5px}
+.wrap{max-width:1500px;margin:auto;padding:14px 24px 30px;display:grid;grid-template-columns:270px minmax(0,1fr) 285px;gap:18px}
+.panel{background:rgba(13,26,41,.9);border:1px solid var(--line);border-radius:18px;padding:16px}.panel h2{font-size:15px;margin:0 0 12px}.control{padding:9px 0;border-bottom:1px solid rgba(36,55,75,.65)}.row{display:flex;justify-content:space-between;gap:8px;font-size:13px}.val{font-weight:700;color:#d8f7ff}
+input[type=range]{width:100%;accent-color:var(--cyan)}button{width:100%;min-height:44px;margin-top:9px;border:1px solid #31506c;border-radius:11px;background:#122a40;color:var(--text);font-weight:700;cursor:pointer}button:hover{background:#173650}
+.center{min-width:0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px}.stat{background:rgba(16,31,48,.85);border:1px solid var(--line);border-radius:12px;padding:10px;font-size:11px;color:var(--muted)}.stat b{display:block;color:var(--text);font-size:17px;margin-top:3px}
+svg{width:100%;display:block;overflow:visible}.legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:12px}.live{width:20px;border-top:3px solid var(--cyan);display:inline-block}.base{width:20px;border-top:2px dashed #8397aa;display:inline-block}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.movers div{padding:5px 0;border-bottom:1px solid var(--line)}.up{color:var(--green)}.down{color:var(--orange)}.badge{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:4px 7px;margin:2px;font-size:11px;color:var(--muted)}
+footer{max-width:1500px;margin:auto;padding:0 24px 28px;color:var(--muted);font-size:11px;line-height:1.5}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.center{order:-1}.stats{grid-template-columns:repeat(2,1fr)}} 
+</style>
+</head>
+<body>
+<header><div class="title">THE ECONOMIC BALANCE</div><div class="sub">Interactive economic cause-and-effect spider chart · scenario prototype</div></header>
+<main class="wrap">
+<section class="panel"><h2>ECONOMIC LEVERS</h2><div id="controls"></div><button id="fed">Apply +25 bp Fed shock</button><button id="reset">Reset scenario</button></section>
+<section class="center">
+<div class="stats"><div class="stat">Policy rate shock<b id="rateCard">0 bp</b></div><div class="stat">Horizon<b id="timeCard">12 months</b></div><div class="stat">Active levers<b id="activeCard">0</b></div><div class="stat">Mode<b>Scenario</b></div></div>
+<svg id="chart" viewBox="0 0 760 760" aria-label="Economic Balance radar chart"></svg>
+<div class="legend"><span><i class="base"></i> Baseline</span><span><i class="live"></i> Scenario</span><span>Center = lower/weaker · edge = higher/stronger</span></div>
+</section>
+<aside class="panel"><h2>CAUSE & EFFECT</h2><div id="summary" class="note">Move a lever to see modeled ripple effects.</div><h2 style="margin-top:20px">LARGEST MOVEMENTS</h2><div id="movers" class="movers note"></div><h2 style="margin-top:20px">MODEL GROUPS</h2><div><span class="badge">Monetary</span><span class="badge">Growth</span><span class="badge">Labor</span><span class="badge">Markets</span><span class="badge">Fiscal</span><span class="badge">Supply</span></div><p class="note" style="margin-top:18px">This prototype is a directional scenario model, not a forecast. A production version can replace baseline inputs with live FRED/BLS/BEA/market data and calibrate coefficients from historical observations.</p></aside>
+</main>
+<footer>Prototype v1 · The Economic Balance. Scenario outputs are illustrative and should not be interpreted as investment advice or precise forecasts.</footer>
+<script>
+const vars=['Interest Rates','Inflation','Unemployment','GDP Growth','Consumer Spending','Business Investment','Government Spending','Taxes','Money Supply','USD Value','Housing Demand','Stock Market','Bond Prices','Oil / Commodities','Global Trade','Wages','Productivity','Consumer Confidence','Business Confidence','National Debt','Fiscal Deficit','Energy Prices','Supply Chain','Geopolitical Risk','Technology','Regulation'];
+const levers=[
+ ['rate','Interest rates','bp',[-1,1]],['gov','Government spending','',[-100,100]],['tax','Taxes','',[-100,100]],['money','Money supply','',[-100,100]],['energy','Energy prices','',[-100,100]],['supply','Supply-chain health','',[-100,100]],['tech','Technology / productivity','',[-100,100]],['risk','Geopolitical risk','',[-100,100]]
+];
+const C={
+rate:[1,-.55,.42,-.48,-.58,-.68,0,0,-.15,.52,-.82,-.55,-.70,-.05,-.20,-.18,-.04,-.40,-.42,.08,.06,.02,-.04,.03,-.02,.02],
+gov:[0,.30,-.30,.58,.52,.35,1,0,.12,-.18,.25,.35,-.10,.12,.20,.30,.12,.35,.38,.55,.82,.08,-.08,.04,.15,.05],
+tax:[0,-.12,.22,-.48,-.62,-.48,0,1,-.08,.12,-.45,-.32,.05,-.05,-.10,-.22,-.08,-.30,-.28,-.18,-.20,-.03,.02,.02,-.05,.02],
+money:[-.20,.62,-.28,.48,.52,.45,0,0,1,-.48,.50,.58,-.35,.25,.18,.28,.05,.38,.40,.12,.08,.15,-.05,.02,.06,.02],
+energy:[.08,.72,.25,-.38,-.48,-.28,.05,.02,.10,.12,-.18,-.32,-.08,.88,-.18,.20,-.12,-.35,-.32,.08,.10,1,-.40,.20,-.10,.02],
+supply:[-.08,-.68,-.22,.62,.45,.50,.02,.02,.02,-.08,.25,.30,.05,-.42,.58,.22,.48,.38,.42,-.05,-.05,-.48,1,-.42,.35,-.12],
+tech:[-.06,-.22,-.18,.65,.38,.55,.04,.02,.02,.05,.20,.48,.02,-.10,.35,.30,1,.42,.55,-.02,-.02,-.15,.40,-.08,1,.08],
+risk:[.12,.30,.35,-.52,-.42,-.50,.15,.02,.10,.35,-.28,-.62,.28,.42,-.65,-.08,-.20,-.58,-.62,.12,.15,.38,-.55,1,-.30,.18]
+};
+const controls=document.querySelector('#controls'); const state={}; 
+levers.forEach(([k,label,unit])=>{state[k]=0;let d=document.createElement('div');d.className='control';d.innerHTML=`<div class="row"><span>${label}</span><span class="val" id="v-${k}">0${unit}</span></div><input id="${k}" type="range" min="-100" max="100" value="0" step="${k==='rate'?25:10}">`;controls.appendChild(d)});
+let td=document.createElement('div');td.className='control';td.innerHTML='<div class="row"><span>Time horizon</span><span class="val" id="v-time">12 mo</span></div><input id="time" type="range" min="0" max="24" value="12" step="3">';controls.appendChild(td);
+const svg=document.querySelector('#chart'),NS='http://www.w3.org/2000/svg',cx=380,cy=380,R=260,N=vars.length;
+const E=(t,a={})=>{let x=document.createElementNS(NS,t);Object.entries(a).forEach(([k,v])=>x.setAttribute(k,v));return x}; const P=(i,r)=>{let a=-Math.PI/2+i*2*Math.PI/N;return[cx+Math.cos(a)*r,cy+Math.sin(a)*r]};
+[.2,.4,.6,.8,1].forEach(q=>svg.appendChild(E('circle',{cx,cy,r:R*q,fill:'none',stroke:'#26394d','stroke-width':'1'})));
+vars.forEach((v,i)=>{let p=P(i,R);svg.appendChild(E('line',{x1:cx,y1:cy,x2:p[0],y2:p[1],stroke:'#26394d','stroke-width':'1'}));let lp=P(i,R+43),t=E('text',{x:lp[0],y:lp[1],fill:'#b9cada','font-size':'10','text-anchor':'middle','dominant-baseline':'middle'});t.textContent=v;svg.appendChild(t)});
+let baseline=E('polygon',{points:vars.map((_,i)=>P(i,R*.52).join(',')).join(' '),fill:'none',stroke:'#8295a8','stroke-width':'2','stroke-dasharray':'6 6'});svg.appendChild(baseline);
+let poly=E('polygon',{fill:'#37d9ff','fill-opacity':'.16',stroke:'#37d9ff','stroke-width':'3','stroke-linejoin':'round'});svg.appendChild(poly);
+let dots=vars.map(()=>{let c=E('circle',{r:4,fill:'#37d9ff'});svg.appendChild(c);return c});
+function draw(){
+ levers.forEach(([k,,unit])=>{state[k]=+document.querySelector('#'+k).value/100;document.querySelector('#v-'+k).textContent=(+document.querySelector('#'+k).value>0?'+':'')+document.querySelector('#'+k).value+unit});
+ let months=+document.querySelector('#time').value,lag=1-Math.exp(-months/8);document.querySelector('#v-time').textContent=months+' mo';document.querySelector('#timeCard').textContent=months+' months';document.querySelector('#rateCard').textContent=(+document.querySelector('#rate').value>0?'+':'')+document.querySelector('#rate').value+' bp';
+ let active=Object.values(state).filter(v=>Math.abs(v)>.01).length;document.querySelector('#activeCard').textContent=active;
+ let m=vars.map((_,i)=>{let z=0;Object.keys(state).forEach(k=>z+=state[k]*C[k][i]);return z*lag});
+ poly.setAttribute('points',m.map((z,i)=>{let q=P(i,R*Math.max(.1,Math.min(.94,.52+z*.24)));dots[i].setAttribute('cx',q[0]);dots[i].setAttribute('cy',q[1]);return q.join(',')}).join(' '));
+ let rank=m.map((v,i)=>({v,i})).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,6);
+ document.querySelector('#movers').innerHTML=rank.filter(x=>Math.abs(x.v)>.025).map(x=>`<div><span class="${x.v>0?'up':'down'}">${x.v>0?'▲':'▼'}</span> ${vars[x.i]}</div>`).join('')||'<div>No major movement yet.</div>';
+ let a=Object.entries(state).filter(x=>Math.abs(x[1])>.01).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1]));
+ document.querySelector('#summary').textContent=a.length?`The strongest active lever is ${levers.find(x=>x[0]===a[0][0])[1].toLowerCase()}. The chart applies a time-lagged directional response across ${vars.length} economic indicators.`:'Move a lever to see modeled ripple effects.';
+}
+[...document.querySelectorAll('input')].forEach(x=>x.addEventListener('input',draw));
+document.querySelector('#fed').addEventListener('click',()=>{document.querySelector('#rate').value=25;draw()});
+document.querySelector('#reset').addEventListener('click',()=>{levers.forEach(([k])=>document.querySelector('#'+k).value=0);document.querySelector('#time').value=12;draw()});
+draw();
+</script>
+</body></html>
